@@ -6,14 +6,13 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var cron = require("node-cron");
 var express = require("express");
 var fs = require("fs");
 const request = require('request');
 
 var express = require("express");
 var app = express();
-
+var schedule_lock = false;
 var pv_data = {
   power_from_battery : null,
   power_from_grid : null,
@@ -21,14 +20,15 @@ var pv_data = {
   power_usage : null
 };
 
-// schedule tasks to poll the inverters
-cron.schedule("* * * * *", function() {
-  console.log("running a task every minute");
-  update_data();
-});
 
-app.listen(3000, () => {
- console.log("Server running on port 3000");
+app.listen(3001, () => {
+ console.log("Server running on port 3001");
+ // intial update
+ update_data();
+ // Start Polling Inverters and Smart Meter
+ setInterval(function() {
+   update_data();
+ },15000);
 });
 
 
@@ -44,17 +44,21 @@ app.get("/update-data", (req, res, next) => {
 async function update_data() {
   console.log("updating data...")
   try {
+      if (!schedule_lock) {
+        schedule_lock = true;
         const symo = await get_local_inverter_data('http://192.168.1.84/solar_api/v1/GetPowerFlowRealtimeData.fcgi');
         const primo = await get_local_inverter_data('http://192.168.1.85/solar_api/v1/GetPowerFlowRealtimeData.fcgi');
         const powermeter = await get_local_inverter_data('http://192.168.1.84/solar_api/v1/GetMeterRealtimeData.cgi?Scope=Device&DeviceId=0');
         pv_data.power_from_pv = symo.Body.Data.Site.P_PV + primo.Body.Data.Site.P_PV;
         pv_data.power_from_battery = symo.Body.Data.Site.P_Akku;
         pv_data.power_from_grid = symo.Body.Data.Site.P_Grid;
-        pv_data.power_usage = pv_data.power_from_pv + powermeter.Body.Data.PowerReal_P_Sum;
+        pv_data.power_usage = pv_data.power_from_pv + powermeter.Body.Data.PowerReal_P_Sum + pv_data.power_from_battery; // needs to be checked when battery is online
         console.log(pv_data);
-
+      }
     } catch (error) {
         console.error('ERROR:',error);
+    } finally {
+      schedule_lock = false;
     }
 }
 

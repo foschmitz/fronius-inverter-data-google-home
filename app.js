@@ -8,7 +8,9 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var express = require("express");
 var fs = require("fs");
-const request = require('request');
+var request = require('request');
+var app = require('express')()
+var basicAuth = require('express-basic-auth')
 
 var express = require("express");
 var app = express();
@@ -31,6 +33,10 @@ app.listen(3001, () => {
  },15000);
 });
 
+app.use(basicAuth({
+    users: { 'admin': '' },
+    challenge: true
+}))
 
 app.get("/inverter-data", (req, res, next) => {
  res.json(pv_data);
@@ -42,7 +48,6 @@ app.get("/update-data", (req, res, next) => {
 });
 
 async function update_data() {
-  console.log("updating data...")
   try {
       if (!schedule_lock) {
         schedule_lock = true;
@@ -53,7 +58,6 @@ async function update_data() {
         pv_data.power_from_battery = symo.Body.Data.Site.P_Akku;
         pv_data.power_from_grid = symo.Body.Data.Site.P_Grid;
         pv_data.power_usage = pv_data.power_from_pv + powermeter.Body.Data.PowerReal_P_Sum + pv_data.power_from_battery; // needs to be checked when battery is online
-        console.log(pv_data);
       }
     } catch (error) {
         console.error('ERROR:',error);

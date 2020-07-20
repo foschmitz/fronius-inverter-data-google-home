@@ -19,7 +19,7 @@ var pv_data = {
   power_from_battery : null,
   power_from_grid : null,
   power_from_pv : null,
-  power_usage : null
+  power_consumption : null
 };
 
 
@@ -57,7 +57,7 @@ async function update_data() {
         pv_data.power_from_pv = symo.Body.Data.Site.P_PV + primo.Body.Data.Site.P_PV;
         pv_data.power_from_battery = symo.Body.Data.Site.P_Akku;
         pv_data.power_from_grid = symo.Body.Data.Site.P_Grid;
-        pv_data.power_usage = pv_data.power_from_pv + powermeter.Body.Data.PowerReal_P_Sum + pv_data.power_from_battery; // needs to be checked when battery is online
+        pv_data.power_consumption = pv_data.power_from_pv + powermeter.Body.Data.PowerReal_P_Sum + pv_data.power_from_battery; // needs to be checked when battery is online
       }
     } catch (error) {
         console.error('ERROR:',error);
